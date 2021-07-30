@@ -1,4 +1,8 @@
 # zzh
 *.asv
+*.mat
 bak/
 weifu_zyk_radar_data/
+result/*
+
+!.gitkeep

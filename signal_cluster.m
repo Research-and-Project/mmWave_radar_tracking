@@ -1,4 +1,4 @@
-%% Data analysis for millimeter radar data
+%% Data cluster for millimeter radar data
 % data format
 % *data format:* 1-X, 2-Y, 3-Z, 4-RANGE, 5-AZIMUTH, 6-ELEVATION, 7-DOPPLER, 
 % 8-POWER, 9-POWER_VALUE, 10-TIMESTAMP_MS
@@ -9,8 +9,11 @@ addpath(genpath('./utils'));
 %% param
 % path and setting
 data_dir = './data/weifu_zyk_radar_data/';
-data_item = '单人8字1pcd/';
-% data_item = '单人横穿pcd/';
+% data_item = '单人8字1pcd/';
+data_item = '单人横穿2pcd/';
+% data_item = '单人直行1pcd/';
+% data_item = '两人交互pcd/';
+
 start_frame = 200;
 end_frame = 750;
 doppler_threshold = 0.1;
@@ -18,13 +21,14 @@ doppler_threshold = 0.1;
 % cluster
 epsilon = 4;
 MinPts = 20;
+obj_count = 1;
 
 % show
 % view_vec = [0 0 1];
 view_vec = [1 1 1];
 axis_range = [-5, 5, 0, 20, -2, 5];
 % axis_range = [-20, 20, 0, 20, -10, 10];
-show_delay = 0.02;
+show_delay = 0.0;
 
 % file info
 datas = dir([data_dir data_item '*.txt']);
@@ -89,8 +93,11 @@ for k = start_frame:end_frame
 	
 % 	[idx,C] = kmeans(frame_doppler(:,[1,2]),2);
 	[idx, Dg] = cluster_idx_arranege(frame_doppler(:,[1,2]), idx);
-	min_idx = min(idx,[],'all');
-	frame_obj = frame_doppler(idx==min_idx,:);
+	disp(['cluster count:' num2str(numel(unique(idx)))])
+	
+% 	min_idx = min(idx,[],'all');
+% 	frame_obj = frame_doppler(idx==min_idx,:);
+	frame_obj = frame_doppler(idx<=obj_count,:);
 	
 	subplot(121)
 % 	scatter3(frame_doppler(:,1),frame_doppler(:,2),frame_doppler(:,3))
@@ -122,10 +129,15 @@ for k = start_frame:end_frame
 	view(2);
 	grid on
 	
+	figtitle(data_item(1:end-1),'color','blue','linewidth',4,'fontsize',15);
     drawnow
     pause(show_delay)
 	
 end
+
+%% save data
+save('traj.mat','traj')
+
 
 
 
