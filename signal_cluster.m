@@ -8,6 +8,7 @@ addpath(genpath('./utils'));
 
 %% param
 % path and setting
+result_dir = './result/';
 data_dir = './data/weifu_zyk_radar_data/';
 % data_item = '单人8字1pcd/';
 data_item = '单人横穿2pcd/';
@@ -136,13 +137,9 @@ for k = start_frame:end_frame
 end
 
 %% save data
-save('traj.mat','traj')
-
-
-
-
-
-
-
-
-
+% data_save_dir = [result_dir data_item 'ResData/'];
+% if ~exist(data_save_dir,'dir')
+% 	mkdir(data_save_dir)
+% end
+% save([data_save_dir 'traj.mat'], 'meas_traj', 'kf_traj')
+% disp(['result data saved to: ' data_save_dir])

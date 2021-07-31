@@ -4,31 +4,24 @@
 % 8-POWER, 9-POWER_VALUE, 10-TIMESTAMP_MS
 
 %% env init
-clear, clc, close all
+clear, clc
 addpath(genpath('./utils'));
 
 %% param
 % path and data
-result_dir = './analysis/';
+result_dir = './result/';
 data_dir = './data/weifu_zyk_radar_data/';
-data_item = '单人8字1pcd/';
+data_item = '单人8字2pcd/';
 % data_item = '单人横穿1pcd/';
 % data_item = '单人直行1pcd/';
 % data_item = '两人交互pcd/';
 
-start_frame = 1;
-end_frame = 1000000;
+start_frame = 200;
+end_frame = 210;
 traj_dim = 2; % 2d/3d trajectory 
 
-% flag
-doppler_analysis_flag = 1;
-loc_analysis_flag = 0;
-noise_analysis_flag = 0;
-
-
-
 % denoise
-param_denoise.dpl_thr = [0.15 Inf];
+param_denoise.dpl_thr = [-0.1 0.1];
 
 % cluster
 epsilon = 4;
@@ -43,14 +36,13 @@ param_kf = getDefaultKFParameters(motion_type);
 % param.measurementNoise      = 25;	
 
 % show
-axis_range = [];
-% axis_range = [-20, 40, 0, 80, -5, 10];
+axis_range = [-5, 5, 0, 20, -2, 5];
 % axis_range = [-20, 20, 0, 20, -10, 10];
 show_delay = 0.0;
 
 
 
-%% analysis
+%% denoise, cluster, KF_tracking
 % ---- file info ----
 datas = dir([data_dir data_item '*.txt']);
 data_names = {datas.name};
@@ -61,82 +53,23 @@ if start_frame>end_frame
 end
 
 % ---- init ----
-% doppler analysis
-doppler_range = NaN(end_frame-start_frame+1, 3); % frame_idx, min_abs_value, max_abs_value
-
-
 KF = []; % KF handle
 det_loc = []; % detected location
 meas_traj = NaN(start_frame-1,traj_dim); % trajectory points
 kf_traj = NaN(start_frame-1,traj_dim);   % KF corrected trajectory points
 isDetected = false; % detected flag
 
-
+figure;
 
 for k = start_frame:end_frame
-	%% ---- load data
-    frame = importdata([data_dir data_item data_names{k}]);
+	% ---- load data
+    frame=importdata([data_dir data_item data_names{k}]);
 	
-	%% ---- analysis ----
-	if loc_analysis_flag
-		
-	end
+	% ---- denoise ----
+% 	frame_clean = point_cloud_denoise(frame, param_denoise);
+    frame_clean = frame(abs(frame(:,7))>doppler_threshold,:); % doppler items
+    disp(['doppler points num: ' num2str(size(frame_clean,1))])
 	
-	if doppler_analysis_flag
-		figure(1)
-		subplot(311)
-		hist(frame(:,7))
-		axis([-5,5, 0, 1500]);
-		title(['Frame #' num2str(k) ' doppler distribution']);
-		xlabel('doppler'), ylabel('count')
-		
-		
-		doppler_range(k-start_frame+1,1) = k;
-		doppler_range(k-start_frame+1,2) = min(abs(frame(:,7)), [], 'all');
-		doppler_range(k-start_frame+1,3) = max(abs(frame(:,7)), [], 'all');
-		
-		subplot(312)
-		plot(doppler_range(:,2))
-		axis([k-50,k,-5,0]);
-		title(['Frame #' num2str(k) ' doppler min abs']);
-		xlabel('frame #'), ylabel('doppler min abs')
-
-		subplot(313)
-		plot(doppler_range(:,3))
-		axis([k-50,k,0,5]);
-		title(['Frame #' num2str(k) ' doppler max abs']);
-		xlabel('frame #'), ylabel('doppler max abs')
-		
-		figtitle('doppler analysis')
-	end
-	
-	if noise_analysis_flag
-		frame_clean = point_cloud_denoise(frame, param_denoise);
-		disp(['doppler points num: ' num2str(size(frame_clean,1))])
-
-		% 3d denoise result
-		figure(1)
-		subplot(121) % 3d
-		hold on
-		scatter3(frame(:,1),frame(:,2),frame(:,3),'go')
-		scatter3(frame_clean(:,1),frame_clean(:,2),frame_clean(:,3),'ro','filled')
-		axis(axis_range); grid on, view(3)
-		title(['Frame #' num2str(k) ' 3D view']);
-		xlabel('X'), ylabel('Y'), zlabel('Z');
-
-		subplot(122) % 2d
-		hold on
-		scatter3(frame(:,1),frame(:,2),frame(:,3),'go')
-		scatter3(frame_clean(:,1),frame_clean(:,2),frame_clean(:,3),'ro','filled')
-		axis(axis_range); grid on, view(2)
-		title(['Frame #' num2str(k) ' 2D view']);
-		xlabel('X'), ylabel('Y'), zlabel('Z');
-	end
-	
-
-
-	
-	%{
 	%  [ToDo] TBD
 	if size(frame_clean, 1) < 4
 		isDetected = false;
@@ -199,7 +132,6 @@ for k = start_frame:end_frame
 % 	cmpTraj(meas_traj, kf_traj, 'plot', 'xlim', axis_range(1:2), 'ylim', axis_range(3:4));
 	plotTraj(kf_traj, k, axis_range)
 
-	%}
 	
 	figtitle(data_item(1:end-1),'color','blue','linewidth',4,'fontsize',15);
     drawnow
@@ -207,17 +139,13 @@ for k = start_frame:end_frame
 	
 end
 
-% make dir
-data_save_dir = [result_dir data_item 'data_feature/'];
+%% save data
+data_save_dir = [result_dir data_item 'ResData/'];
 if ~exist(data_save_dir,'dir')
 	mkdir(data_save_dir)
 end
-
-%% statistic analysis
-% doppler analysis
-% save data
-save([data_save_dir 'data_stat_feature.mat'], 'doppler_range')
-disp(['analysis-doppler_range data saved to: ' data_save_dir])
+save([data_save_dir 'traj.mat'], 'meas_traj', 'kf_traj')
+disp(['result data saved to: ' data_save_dir])
 
 
 

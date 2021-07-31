@@ -4,7 +4,7 @@
 % 8-POWER, 9-POWER_VALUE, 10-TIMESTAMP_MS
 
 %% env init
-clear, clc
+clear, clc, close all
 addpath(genpath('./utils'));
 
 %% param
@@ -16,12 +16,12 @@ data_item = '单人8字1pcd/';
 % data_item = '单人直行1pcd/';
 % data_item = '两人交互pcd/';
 
-start_frame = 200;
-end_frame = 1000;
+start_frame = 1;
+end_frame = 1000000;
 traj_dim = 2; % 2d/3d trajectory 
 
 % denoise
-doppler_threshold = 0.1;
+param_denoise.dpl_thr = [0.15 Inf];
 
 % cluster
 epsilon = 4;
@@ -30,15 +30,14 @@ obj_count = 2;
 
 % Kalman filter
 motion_type = 'ConstantVelocity'; % 'ConstantVelocity' | 'ConstantAcceleration'
-param = getDefaultKFParameters(motion_type);
+param_kf = getDefaultKFParameters(motion_type);
 % param.initialEstimateError  = 1E5 * ones(1, 2);
 % param.motionNoise           = [25, 10];
 % param.measurementNoise      = 25;	
 
 % show
-% view_vec = [0 0 1];
-% view_vec = 3;
-axis_range = [-5, 5, 0, 20, -2, 5];
+axis_range = [];
+% axis_range = [-20, 40, 0, 80, -5, 10];
 % axis_range = [-20, 20, 0, 20, -10, 10];
 show_delay = 0.0;
 
@@ -59,29 +58,52 @@ KF = []; % KF handle
 det_loc = []; % detected location
 meas_traj = NaN(start_frame-1,traj_dim); % trajectory points
 kf_traj = NaN(start_frame-1,traj_dim);   % KF corrected trajectory points
-isDetected = false;
+isDetected = false; % detected flag
 
 figure;
 
 for k = start_frame:end_frame
-    frame=importdata([data_dir data_item data_names{k}]);
-    frame_doppler = frame(abs(frame(:,7))>doppler_threshold,:); % doppler items
-    disp(['doppler points num: ' num2str(size(frame_doppler,1))])
+	% ---- load data
+    frame = importdata([data_dir data_item data_names{k}]);
 	
+	% ---- denoise ----
+	frame_clean = point_cloud_denoise(frame, param_denoise);
+    disp(['doppler points num: ' num2str(size(frame_clean,1))])
+	
+	% denoise result
+	figure(1)
+	subplot(121) % 3d
+	hold on
+	scatter3(frame(:,1),frame(:,2),frame(:,3),'go')
+	scatter3(frame_clean(:,1),frame_clean(:,2),frame_clean(:,3),'ro','filled')
+	axis(axis_range); grid on, view(3)
+	title(['Frame #' num2str(k) ' 3D view']);
+	xlabel('X'), ylabel('Y'), zlabel('Z');
+	
+	subplot(122) % 2d
+	hold on
+	scatter3(frame(:,1),frame(:,2),frame(:,3),'go')
+	scatter3(frame_clean(:,1),frame_clean(:,2),frame_clean(:,3),'ro','filled')
+	axis(axis_range); grid on, view(2)
+	title(['Frame #' num2str(k) ' 2D view']);
+	xlabel('X'), ylabel('Y'), zlabel('Z');	
+	
+	
+	%{
 	%  [ToDo] TBD
-	if size(frame_doppler, 1) < 4
+	if size(frame_clean, 1) < 4
 		isDetected = false;
 	end
 
-	idx = DBSCAN(frame_doppler(:,[1,2]),epsilon,MinPts); % DBSCAN Cluster
+	idx = DBSCAN(frame_clean(:,[1,2]),epsilon,MinPts); % DBSCAN Cluster
 	
 	% delete noise points cluster(idx==0)
-	frame_doppler(idx==0,:) = []; 
+	frame_clean(idx==0,:) = []; 
 	idx(idx==0,:) = [];
 
 % 	[idx,C] = kmeans(frame_doppler(:,[1,2]),2); % K-Means Cluster
 
-	[idx, Dg] = cluster_idx_arranege(frame_doppler(:,[1,2]), idx);
+	[idx, Dg] = cluster_idx_arranege(frame_clean(:,[1,2]), idx);
 	disp(['cluster count:' num2str(numel(unique(idx)))])
 
 	if isempty(idx)
@@ -93,13 +115,13 @@ for k = start_frame:end_frame
 	if isDetected
 	% 	min_idx = min(idx,[],'all');
 	% 	frame_obj = frame_doppler(idx==min_idx,:);
-		frame_obj = frame_doppler(idx<=obj_count,:);
+		frame_obj = frame_clean(idx<=obj_count,:);
 
 		subplot(121)
 	% 	scatter3(frame_doppler(:,1),frame_doppler(:,2),frame_doppler(:,3))
 	% 	gscatter(frame_doppler(:,1),frame_doppler(:,2),idx,'rgbcmykw')
 
-		gscatter3(frame_doppler(:,1),frame_doppler(:,2),frame_doppler(:,3),idx,[],[],10,'on')
+		gscatter3(frame_clean(:,1),frame_clean(:,2),frame_clean(:,3),idx,[],[],10,'on')
 
 		% calc bounding box
 		rect_min = min(frame_obj(:,1:3),[],1);
@@ -116,7 +138,7 @@ for k = start_frame:end_frame
 	end
 	
 	% Kalman Filter
-	[kf_loc, KF, states] = KF_tracking(det_loc, KF, param);
+	[kf_loc, KF, states] = KF_tracking(det_loc, KF, param_kf);
 	if isempty(kf_loc)
 		kf_loc = NaN(1,traj_dim);
 	end
@@ -130,6 +152,7 @@ for k = start_frame:end_frame
 % 	cmpTraj(meas_traj, kf_traj, 'plot', 'xlim', axis_range(1:2), 'ylim', axis_range(3:4));
 	plotTraj(kf_traj, k, axis_range)
 
+	%}
 	
 	figtitle(data_item(1:end-1),'color','blue','linewidth',4,'fontsize',15);
     drawnow
@@ -138,9 +161,12 @@ for k = start_frame:end_frame
 end
 
 %% save data
-data_save_dir = [result_dir data_item '_ResData/'];
-save([data_save_dir 'traj.mat'], 'meas_traj', 'kf_traj')
-
+% data_save_dir = [result_dir data_item 'ResData/'];
+% if ~exist(data_save_dir,'dir')
+% 	mkdir(data_save_dir)
+% end
+% save([data_save_dir 'traj.mat'], 'meas_traj', 'kf_traj')
+% disp(['result data saved to: ' data_save_dir])
 
 
 
@@ -180,9 +206,9 @@ end
 
 function plotTraj(traj, frame_idx, axis_range)
 	if size(traj, 2)==2
-		plot(traj(:,1),traj(:,2),'r-x','MarkerSize',4,'LineWidth',2)
+		plot(traj(:,1),traj(:,2),'r-x','MarkerSize',5,'LineWidth',1)
 	elseif size(traj, 2)==3
-		plot3(traj(:,1),traj(:,2),traj(:,3),'r-x','MarkerSize',4,'LineWidth',2)
+		plot3(traj(:,1),traj(:,2),traj(:,3),'r-x','MarkerSize',5,'LineWidth',1)
 	end
 	
 	title(['Frame #' num2str(frame_idx) ' - XY trajectory']);
