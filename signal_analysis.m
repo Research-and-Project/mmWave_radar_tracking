@@ -11,20 +11,21 @@ addpath(genpath('./utils'));
 % path and data
 result_dir = './analysis/';
 data_dir = './data/weifu_zyk_radar_data/';
-data_item = '单人8字1pcd/';
-% data_item = '单人横穿1pcd/';
-% data_item = '单人直行1pcd/';
-% data_item = '两人交互pcd/';
+% data_item = '单人8字2pcd/';
+% data_item = '单人横穿2pcd/';
+% data_item = '单人直行2pcd/';
+data_item = '两人交互pcd/';
 
 start_frame = 1;
 end_frame = 1000000;
 traj_dim = 2; % 2d/3d trajectory 
 
-% flag
-doppler_analysis_flag = 1;
+% analysis setting
 loc_analysis_flag = 0;
+doppler_analysis_flag = 1;
 noise_analysis_flag = 0;
 
+rec_point = start_frame:250:end_frame; % record per 250 frame
 
 
 % denoise
@@ -50,7 +51,7 @@ show_delay = 0.0;
 
 
 
-%% analysis
+%% data init
 % ---- file info ----
 datas = dir([data_dir data_item '*.txt']);
 data_names = {datas.name};
@@ -60,30 +61,38 @@ if start_frame>end_frame
 	error("start frame over range")
 end
 
-% ---- init ----
-% doppler analysis
+% ---- make dir ----
+data_save_dir = [result_dir data_item 'data_feature/'];
+if ~exist(data_save_dir,'dir')
+	mkdir(data_save_dir)
+end
+
+% ---- doppler data ----
 doppler_range = NaN(end_frame-start_frame+1, 3); % frame_idx, min_abs_value, max_abs_value
 
-
-KF = []; % KF handle
-det_loc = []; % detected location
-meas_traj = NaN(start_frame-1,traj_dim); % trajectory points
-kf_traj = NaN(start_frame-1,traj_dim);   % KF corrected trajectory points
-isDetected = false; % detected flag
-
+% KF = []; % KF handle
+% det_loc = []; % detected location
+% meas_traj = NaN(start_frame-1,traj_dim); % trajectory points
+% kf_traj = NaN(start_frame-1,traj_dim);   % KF corrected trajectory points
+% isDetected = false; % detected flag
 
 
+%% ---- statistic analysis ----
 for k = start_frame:end_frame
-	%% ---- load data
+	% ---- load data
     frame = importdata([data_dir data_item data_names{k}]);
 	
-	%% ---- analysis ----
+	
+	% 1 - loc_analysis
 	if loc_analysis_flag
 		
 	end
 	
+	% 2 - doppler_analysis
 	if doppler_analysis_flag
-		figure(1)
+		figure(2)
+		set(gcf,'WindowState','maximized')
+		
 		subplot(311)
 		hist(frame(:,7))
 		axis([-5,5, 0, 1500]);
@@ -97,7 +106,7 @@ for k = start_frame:end_frame
 		
 		subplot(312)
 		plot(doppler_range(:,2))
-		axis([k-50,k,-5,0]);
+		axis([k-50,k,0,5]);
 		title(['Frame #' num2str(k) ' doppler min abs']);
 		xlabel('frame #'), ylabel('doppler min abs')
 
@@ -107,7 +116,14 @@ for k = start_frame:end_frame
 		title(['Frame #' num2str(k) ' doppler max abs']);
 		xlabel('frame #'), ylabel('doppler max abs')
 		
-		figtitle('doppler analysis')
+		figtitle([data_item(1:end-1) ' - doppler analysis'],'color','blue','linewidth',4,'fontsize',10);
+		
+		% save fig
+		if ismember(k,rec_point)
+			saveas(gcf,[data_save_dir 'doppler_analysis_f' num2str(k) '.png'])
+			disp(['doppler_analysis fig saved to: ' data_save_dir])
+		end
+
 	end
 	
 	if noise_analysis_flag
@@ -131,6 +147,10 @@ for k = start_frame:end_frame
 		axis(axis_range); grid on, view(2)
 		title(['Frame #' num2str(k) ' 2D view']);
 		xlabel('X'), ylabel('Y'), zlabel('Z');
+		
+% 		% save fig
+% % 		saveas(gcf,[data_save_dir 'doppler_max_abs.png'])
+% % 		disp(['doppler_max_abs saved to: ' data_save_dir])
 	end
 	
 
@@ -201,22 +221,25 @@ for k = start_frame:end_frame
 
 	%}
 	
-	figtitle(data_item(1:end-1),'color','blue','linewidth',4,'fontsize',15);
+% 	figtitle(data_item(1:end-1),'color','blue','linewidth',4,'fontsize',15);
     drawnow
     pause(show_delay)
 	
 end
 
-% make dir
-data_save_dir = [result_dir data_item 'data_feature/'];
-if ~exist(data_save_dir,'dir')
-	mkdir(data_save_dir)
-end
 
 %% statistic analysis
 % doppler analysis
+figure
+plot(doppler_range(:,3))
+xlabel('frame #'), ylabel('doppler max abs'),grid on
+title('doppler max abs')
+% save fig
+saveas(gcf,[data_save_dir 'doppler_max_abs.png'])
+disp(['doppler_max_abs saved to: ' data_save_dir])
+
 % save data
-save([data_save_dir 'data_stat_feature.mat'], 'doppler_range')
+save([data_save_dir 'doppler_analysis_feature.mat'], 'doppler_range')
 disp(['analysis-doppler_range data saved to: ' data_save_dir])
 
 

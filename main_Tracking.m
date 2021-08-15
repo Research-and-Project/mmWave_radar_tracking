@@ -17,11 +17,11 @@ data_item = '单人8字2pcd/';
 % data_item = '两人交互pcd/';
 
 start_frame = 200;
-end_frame = 210;
+end_frame = 800;
 traj_dim = 2; % 2d/3d trajectory 
 
 % denoise
-param_denoise.dpl_thr = [-0.1 0.1];
+param_denoise.dpl_thr = 0.1;
 
 % cluster
 epsilon = 4;
@@ -66,8 +66,8 @@ for k = start_frame:end_frame
     frame=importdata([data_dir data_item data_names{k}]);
 	
 	% ---- denoise ----
-% 	frame_clean = point_cloud_denoise(frame, param_denoise);
-    frame_clean = frame(abs(frame(:,7))>doppler_threshold,:); % doppler items
+	frame_clean = point_cloud_denoise(frame, param_denoise);
+%     frame_clean = frame(abs(frame(:,7))>doppler_threshold,:); % doppler items
     disp(['doppler points num: ' num2str(size(frame_clean,1))])
 	
 	%  [ToDo] TBD
@@ -118,7 +118,7 @@ for k = start_frame:end_frame
 	end
 	
 	% Kalman Filter
-	[kf_loc, KF, states] = KF_tracking(det_loc, KF, param_kf);
+	[kf_loc, KF, states] = KF_step(det_loc, KF, param_kf);
 	if isempty(kf_loc)
 		kf_loc = NaN(1,traj_dim);
 	end

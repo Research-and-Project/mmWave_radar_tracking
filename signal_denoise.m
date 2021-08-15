@@ -16,12 +16,13 @@ data_item = '单人8字1pcd/';
 % data_item = '单人直行1pcd/';
 % data_item = '两人交互pcd/';
 
-start_frame = 1;
+start_frame = 300;
 end_frame = 1000000;
 traj_dim = 2; % 2d/3d trajectory 
 
 % denoise
-param_denoise.dpl_thr = [0.15 Inf];
+param_denoise.dpl_thr = 0.1;
+param_denoise.loc_thr = [-40, 40, 0, 40, -40-5, 40];
 
 % cluster
 epsilon = 4;
@@ -79,6 +80,7 @@ for k = start_frame:end_frame
 	axis(axis_range); grid on, view(3)
 	title(['Frame #' num2str(k) ' 3D view']);
 	xlabel('X'), ylabel('Y'), zlabel('Z');
+	legend('orig','clean')
 	
 	subplot(122) % 2d
 	hold on
@@ -87,6 +89,7 @@ for k = start_frame:end_frame
 	axis(axis_range); grid on, view(2)
 	title(['Frame #' num2str(k) ' 2D view']);
 	xlabel('X'), ylabel('Y'), zlabel('Z');	
+	legend('orig','clean')
 	
 	
 	%{
