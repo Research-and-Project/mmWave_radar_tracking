@@ -6,6 +6,7 @@ normalId = find(normalId);
 	for i = 1:length(unassignedTracks)
 		ind = normalId(unassignedTracks(i));
 		tracks(ind).age = tracks(ind).age + 1;
+		tracks(ind).traj_rec(tracks(ind).age,:) = NaN(1,3);
 		tracks(ind).consecutiveInvisibleCount = ...
 			tracks(ind).consecutiveInvisibleCount + 1;
 	end

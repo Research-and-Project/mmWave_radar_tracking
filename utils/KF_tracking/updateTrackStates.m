@@ -7,7 +7,7 @@ function tracks = updateTrackStates(tracks)
 	end
 
 	invisibleForTooLong = 20;
-	ageThreshold = 8;
+	ageThreshold = 5;
 
 	% normal tracks
 	normalId = strcmp([tracks(:).state],"normal");
@@ -20,23 +20,18 @@ function tracks = updateTrackStates(tracks)
 	visibility = totalVisibleCounts ./ ages;
 
 	% update tracks states (noise,lost,normal).
-	noiseInds = ages < ageThreshold & visibility < 0.6;
-	if any(noiseInds)
-		[normal_tracks(noiseInds).state] = cellstr(repmat("noise",sum(noiseInds),1));
+	noiseInds = ages < ageThreshold & visibility < 0.5;
+	for mm=find(noiseInds)
+		normal_tracks(mm).state = "noise";
 	end
 % 	normalId = strcmp([tracks(:).state],"normal");
 	lostInds = [normal_tracks().consecutiveInvisibleCount] >= invisibleForTooLong;
 % 	normalId = find(normalId);
-	if any(lostInds)
-		[normal_tracks(lostInds).state] = cellstr(repmat("lost",sum(lostInds),1));
+	for mm=find(lostInds)
+		normal_tracks(mm).state = "lost";
 	end
 	
 	% remap from normal_tracks to tracks
 	tracks(normalId) = normal_tracks;
-% 	% Find the indices of 'lost' tracks.
-% 	lostInds = (ages < ageThreshold & visibility < 0.6) | ...
-% 		[tracks(:).consecutiveInvisibleCount] >= invisibleForTooLong;
-% 
-% 	% Delete lost tracks.
-% 	tracks = tracks(~lostInds);
+
 end
