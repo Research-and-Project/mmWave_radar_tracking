@@ -1,7 +1,7 @@
 # mmWave_radar_tracking
 object tracking based on millimeter wave radar data
 
-> [Zhihong Zhang](https://github.com/dawnlh)
+\* Author: [Zhihong Zhang](https://github.com/dawnlh)
 
 ## Introduction
 
