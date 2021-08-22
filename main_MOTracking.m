@@ -22,7 +22,7 @@ param_denoise.dpl_thr = 0.1;
 
 % detection
 param_det.minObjPoints = 30;
-param_det.DBSCAN_epsilon = 0.5;
+param_det.DBSCAN_epsilon = 0.3;
 param_det.DBSCAN_MinPts = 30;
 % param_det.max_obj_count = 2;
 
@@ -31,7 +31,7 @@ motion_type = 'ConstantVelocity'; % 'ConstantVelocity' | 'ConstantAcceleration'
 param_kf = getDefaultKFParameters(motion_type);
 param.initialEstimateError  = [200 50];
 param.motionNoise           = [100 25];
-param.measurementNoise      = 400;
+param.measurementNoise      = 600;
 
 % show
 axis_range = [-5, 5, 0, 20, -2, 5];
@@ -67,7 +67,7 @@ for k = start_frame:end_frame
     disp(['clean points num: ' num2str(size(frame_clean,1))])
 	
 	% ---- detect ----
-	[centroids, bboxes, obj_frame, obj_idx] = getDetections(frame_clean,param_det);
+	[centroids, bboxes, obj_frame, obj_idx, obj_features] = getDetections(frame_clean,param_det);
 	disp(['cluster count:' num2str(size(centroids,1))])
 	
 	% ---- track ---- 
@@ -76,7 +76,7 @@ for k = start_frame:end_frame
 
 	% determine assignment of detection to tracks
 	[assignments, unassignedTracks, unassignedDetections] = ...
-	detectionToTrackAssignment(tracks, centroids);
+	detectionToTrackAssignment(tracks, centroids, obj_frame, obj_idx, obj_features);
 
 	% undate assigned tracks
     tracks = updateAssignedTracks(tracks, assignments, centroids, bboxes);
@@ -89,7 +89,7 @@ for k = start_frame:end_frame
 	
 	% create new tracks(tracks);
     [tracks,nextId] = createNewTracks(tracks, unassignedDetections, ...
-		centroids, bboxes, param_kf, nextId, k);
+		centroids, bboxes, obj_features, param_kf, nextId, k);
 
 	% display track results
     showTrackingResults(obj_frame, obj_idx, tracks, k, axis_range, data_item(1:end-1))
@@ -163,24 +163,28 @@ function showTrackingResults(obj_frame, obj_idx, tracks, frame_idx, axis_range, 
 			~strcmp([tracks(:).state],"noise"); 
 	effectTracks = tracks(effect_track_ind);
 	
+	clf(gcf) % clear figure before new display
 	if ~ isempty(effectTracks) && ~isempty(obj_idx)
 		% show 3d
-		subplot(121)
+		subplot(121)		
 		% scatter3(obj_frame(:,1),obj_frame(:,2),obj_frame(:,3),10,'filled')
-		gscatter3(obj_frame(:,1),obj_frame(:,2),obj_frame(:,3),obj_idx,0.3*ones(10,3),[],10,'on')
-		
+		gscatter3(obj_frame(:,1),obj_frame(:,2),obj_frame(:,3),obj_idx,0.3*ones(10,3),[],10,'off')
+
 		for m = 1:length(normalTracks)
-			plotBoundingbox(normalTracks(m).bbox(1:3), normalTracks(m).bbox(4:6), clr(normalTracks(m).id,:), [], axis_range)
+			plotBoundingbox(normalTracks(m).bbox(1:3), normalTracks(m).bbox(4:6), clr(normalTracks(m).id,:), ['obj' num2str(normalTracks(m).id)], axis_range)
 		end
+		legend
  		% view(2) % 2D view for debug
 
 		% show 2D
 		subplot(122)
 		hold on
 		for m = 1:length(effectTracks)
-			plotTraj(effectTracks(m).traj_rec(:,1:2), axis_range, clr(effectTracks(m).id,:))
+			plotTraj(effectTracks(m).traj_rec(:,1:2), axis_range, ['obj' num2str(effectTracks(m).id)], clr(effectTracks(m).id,:))
 		end
 		hold off
+		legend
+		
 	end
 	
 	% fig info

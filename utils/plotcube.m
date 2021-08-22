@@ -1,4 +1,4 @@
-function plotcube(varargin)
+function cube_handle = plotcube(varargin)
 % PLOTCUBE - Display a 3D-cube in the current axes
 %
 %   PLOTCUBE(EDGES,ORIGIN,ALPHA,COLOR) displays a 3D-cube in the current axes
@@ -8,21 +8,17 @@ function plotcube(varargin)
 %   * ALPHA : scalar that defines the transparency of the cube faces (from 0
 %             to 1)
 %   * COLOR : 3-elements vector that defines the faces color of the cube
-%   * LEGEND :string that defines the legend 
 %
+%	* cube_handle: cube handle
+% 
 % Example:
 %   >> plotcube([5 5 5],[ 2  2  2],.8,[1 0 0]);
 %   >> plotcube([5 5 5],[10 10 10],.8,[0 1 0]);
 %   >> plotcube([5 5 5],[20 20 20],.8,[0 0 1]);
 %
 % Create: https://ww2.mathworks.cn/matlabcentral/fileexchange/15161-plotcube
-% Modify: Zhihong Zhang, 20210729
+% Modify: Zhihong Zhang, 20210822
 
-
-
-% init
-lgd_hd = legend(gca);
-set(lgd_hd, 'AutoUpdate', 'off'); % cancel legend for box
 
 % Default input arguments
 inArgs = { ...
@@ -30,15 +26,15 @@ inArgs = { ...
   [10 10  10] , ... % Default coordinates of the origin point of the cube
   .7          , ... % Default alpha value for the cube's faces
   [1 0 0],       ... % Default Color for the cube
-  ''       ... % Default legend - no legend
   };
 
 % Replace default input arguments by input values
 inArgs(1:nargin) = varargin;
 
 % Create all variables
-[edges,origin,alpha,clr,lgd] = deal(inArgs{:});
+[edges,origin,alpha,clr] = deal(inArgs{:});
 
+% plot
 XYZ = { ...
   [0 0 0 0]  [0 0 1 1]  [0 1 1 0] ; ...
   [1 1 1 1]  [0 0 1 1]  [0 1 1 0] ; ...
@@ -63,10 +59,13 @@ hdl = cellfun(@patch,XYZ{1},XYZ{2},XYZ{3},...
   repmat({alpha},6,1)...
   );
 
-if ~isempty(lgd)
-	legend([lgd_hd.String,lgd]);
+if nargout==1
+	cube_handle = hdl(1);
 end
 
-set(lgd_hd, 'AutoUpdate', 'on');
+for k = 2:6
+	hdl(k).Annotation.LegendInformation.IconDisplayStyle = 'off';
+end
+
 
 view(3);

@@ -44,7 +44,10 @@ for i=1:max(size(cgroups))
         gi = find(group == cgroups(i));
     end   
     
-    scatter3(a,x(gi),y(gi),z(gi),siz,clr(i,:),'filled',sym(i)); 
+    hdl = scatter3(a,x(gi),y(gi),z(gi),siz,clr(i,:),'filled',sym(i)); 
+	if strcmp(doleg,'off')
+		hdl.Annotation.LegendInformation.IconDisplayStyle = 'off';
+	end
 end 
 
 % Axes labels and legend (this bit slows down the function)
@@ -58,7 +61,7 @@ if strcmp(doleg,'on')
         legend(cgroups')
 	else
         legend(num2str(cgroups(:)))
-    end
+	end
 end
 
 hold off

@@ -1,5 +1,5 @@
 function [assignments, unassignedTracks, unassignedDetections] = ...
-		detectionToTrackAssignment(tracks, centroids)
+		detectionToTrackAssignment(tracks, centroids, obj_frame, obj_idx, obj_features)
 % Assigning object detections in the current frame to existing tracks is
 % done by minimizing cost. The cost is defined as the negative
 % log-likelihood of a detection corresponding to a track.  
@@ -33,15 +33,34 @@ function [assignments, unassignedTracks, unassignedDetections] = ...
 	normalIdIdx = find(strcmp([tracks(:).state],"normal"));
 	nTracks = length(normalIdIdx);
 	nDetections = size(centroids, 1);
-
+	
 	% Compute the cost of assigning each detection to each track.
-	cost = zeros(nTracks, nDetections);
+	cost_dist = zeros(nTracks, nDetections);
+	cost_feature = zeros(nTracks, nDetections);
 	for i = 1:nTracks
-		cost(i, :) = distance(tracks(normalIdIdx(i)).kalmanFilter, centroids);
+		% distance cost
+		cost_dist(i, :) = distance(tracks(normalIdIdx(i)).kalmanFilter, centroids);
+		
+		% feature cost
+		cost_feature(i, :) = calcFeatureCost(tracks(normalIdIdx(i)).obj_feature, obj_features); 
 	end
+	
+	cost = 0.6*cost_dist + 0.4*cost_feature;
 
+	
 	% Solve the assignment problem.
-	costOfNonAssignment = 20;
+	costOfNonAssignment = 25;
 	[assignments, unassignedTracks, unassignedDetections] = ...
 		assignDetectionsToTracks(cost, costOfNonAssignment);
+end
+
+%% sub function
+% calculate feature cost
+function cost_feature = calcFeatureCost(objA_feature, obj_features)
+	% calculate feature cost of given object and existing objects
+	if isempty(obj_features) || isempty(objA_feature) 
+		cost_feature = NaN(1,length(obj_features));
+	else
+		cost_feature = 10*([obj_features.average_speed] - objA_feature.average_speed).^2;
+	end
 end

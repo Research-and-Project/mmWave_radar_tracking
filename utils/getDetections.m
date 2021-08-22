@@ -1,4 +1,4 @@
-function [centroids, bboxes, obj_frame, obj_idx] = getDetections(frame, param_det)
+function [centroids, bboxes, obj_frame, obj_idx, obj_features] = getDetections(frame, param_det)
 % GETDETECTIONS	-	get detections of the objects
 % Input
 %	- frame			data of current frame, numerical matrix
@@ -16,14 +16,13 @@ function [centroids, bboxes, obj_frame, obj_idx] = getDetections(frame, param_de
 %	  8-POWER, 9-POWER_VALUE, 10-TIMESTAMP_MS
 
 
-centroids = [];
-bboxes = [];
-% obj_features = [];
-
 if size(frame, 1)  < param_det.minObjPoints
 	% too few points - no detection
+	centroids = [];
+	bboxes = [];
 	obj_frame = [];
 	obj_idx = [];
+	obj_features = [];
 	return
 end
 
@@ -38,6 +37,12 @@ obj_idx(idx==0,:) = [];
 
 % calc bounding box
 unique_class = unique(obj_idx);
+class_num = length(unique_class);
+
+% init
+bboxes = NaN(class_num,6);
+centroids = NaN(class_num,3);
+obj_features = [];
 
 for kk = 1:length(unique_class)
 	frame_obj = obj_frame(obj_idx==unique_class(kk),:);
@@ -46,7 +51,6 @@ for kk = 1:length(unique_class)
 	rect_min = min(frame_obj(:,1:3),[],1);
 	rect_max = max(frame_obj(:,1:3),[],1);
 	rect_size = rect_max - rect_min;
-	% rect_center = (rect_min + rect_max)/2;
 % 	rect_center = calcCentroid(frame_obj(:,1:3));
 	rect_center = calcCentroid(frame_obj(:,1:3),frame_obj(:,8));
 	
@@ -54,7 +58,12 @@ for kk = 1:length(unique_class)
 	bboxes(kk,4:6) = rect_size;
 	centroids(kk,1:3) = rect_center;
 	
-
+	% calc object feature
+	if isempty(obj_features)
+		obj_features = getDetectionFeature(frame_obj);
+	else
+		obj_features(kk) = getDetectionFeature(frame_obj);
+	end
 end
 
 end
@@ -76,62 +85,62 @@ end
 % Contact Info: sm.kalami@gmail.com, info@yarpiz.com
 %
 
-function [IDX, isnoise]=DBSCAN(X,epsilon,MinPts)
-
-    C=0;
-    
-    n=size(X,1);
-    IDX=zeros(n,1);
-    
-    D=pdist2(X,X);
-    
-    visited=false(n,1);
-    isnoise=false(n,1);
-    
-    for i=1:n
-        if ~visited(i)
-            visited(i)=true;
-            
-            Neighbors=RegionQuery(i);
-            if numel(Neighbors)<MinPts
-                % X(i,:) is NOISE
-                isnoise(i)=true;
-            else
-                C=C+1;
-                ExpandCluster(i,Neighbors,C);
-            end
-            
-        end
-    
-    end
-    
-    function ExpandCluster(i,Neighbors,C)
-        IDX(i)=C;
-        
-        k = 1;
-        while true
-            j = Neighbors(k);
-            
-            if ~visited(j)
-                visited(j)=true;
-                Neighbors2=RegionQuery(j);
-                if numel(Neighbors2)>=MinPts
-                    Neighbors=[Neighbors Neighbors2];   %#ok
-                end
-            end
-            if IDX(j)==0
-                IDX(j)=C;
-            end
-            
-            k = k + 1;
-            if k > numel(Neighbors)
-                break;
-            end
-        end
-    end
-    
-    function Neighbors=RegionQuery(i)
-        Neighbors=find(D(i,:)<=epsilon);
-    end
-
-end
+% function [IDX, isnoise]=DBSCAN(X,epsilon,MinPts)
+% 
+%     C=0;
+%     
+%     n=size(X,1);
+%     IDX=zeros(n,1);
+%     
+%     D=pdist2(X,X);
+%     
+%     visited=false(n,1);
+%     isnoise=false(n,1);
+%     
+%     for i=1:n
+%         if ~visited(i)
+%             visited(i)=true;
+%             
+%             Neighbors=RegionQuery(i);
+%             if numel(Neighbors)<MinPts
+%                 % X(i,:) is NOISE
+%                 isnoise(i)=true;
+%             else
+%                 C=C+1;
+%                 ExpandCluster(i,Neighbors,C);
+%             end
+%             
+%         end
+%     
+%     end
+%     
+%     function ExpandCluster(i,Neighbors,C)
+%         IDX(i)=C;
+%         
+%         k = 1;
+%         while true
+%             j = Neighbors(k);
+%             
+%             if ~visited(j)
+%                 visited(j)=true;
+%                 Neighbors2=RegionQuery(j);
+%                 if numel(Neighbors2)>=MinPts
+%                     Neighbors=[Neighbors Neighbors2];   %#ok
+%                 end
+%             end
+%             if IDX(j)==0
+%                 IDX(j)=C;
+%             end
+%             
+%             k = k + 1;
+%             if k > numel(Neighbors)
+%                 break;
+%             end
+%         end
+%     end
+%     
+%     function Neighbors=RegionQuery(i)
+%         Neighbors=find(D(i,:)<=epsilon);
+%     end
+% 
+% end
