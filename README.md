@@ -1,5 +1,4 @@
 # mmWave_radar_tracking
-object tracking based on millimeter wave radar data
 
 > by [dawnlh](https://github.com/dawnlh)
 
@@ -37,10 +36,6 @@ Object tracking based on millimeter wave radar data with Kalman Filter algorithm
 
 ## Reference
 
-- P. Zhao *et al.*, “mID: Tracking and Identifying People with Millimeter Wave Radar,” in *2019 15th International Conference on Distributed Computing in Sensor Systems (DCOSS)*, Santorini Island, Greece, May 2019, pp. 33–40. doi: [10.1109/DCOSS.2019.00028
-        
-        ](https://doi.org/10.1109/DCOSS.2019.00028
-        
-        ).
+- P. Zhao *et al.*, “mID: Tracking and Identifying People with Millimeter Wave Radar,” in *2019 15th International Conference on Distributed Computing in Sensor Systems (DCOSS)*, Santorini Island, Greece, May 2019, pp. 33–40. doi: [10.1109/DCOSS.2019.00028](https://doi.org/10.1109/DCOSS.2019.00028).
 - [MATLAB: Motion-Based Multiple Object Tracking](https://ww2.mathworks.cn/help/vision/ug/motion-based-multiple-object-tracking.html)
 - [MATLAB: Use Kalman Filter for Object Tracking](https://ww2.mathworks.cn/help/vision/ug/using-kalman-filter-for-object-tracking.html)
